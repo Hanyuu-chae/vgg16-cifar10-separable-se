@@ -18,10 +18,6 @@
 | `se` | ❌ | ✅ | 仅加入 SE 注意力模块 |
 | `dw_se` | ✅ | ✅ | 同时使用 DW 卷积与 SE 模块 |
 
-# 环境要求
-
-请确保你的环境中已安装 Python (建议 3.8+) 和 PyTorch (建议 1.10+)。
-
 # 数据集准备 
 本项目使用的是 CIFAR-10 数据集。[https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz](https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz)
 
@@ -46,12 +42,12 @@ python train.py --model_type baseline --epochs 50
 | `--model_type` | str | baseline | 选择模型结构 (baseline, dw, se, dw_se) |
 | `--epochs` | int | 10 | 训练的总轮数 |
 | `--batch_size` | int | 128 | 训练和验证时的 Batch Size |
-| `--lr` | float | 0.001 | 初始学习率 (使用 Adam 优化器) |
-| `--seed` | int | 42 | 随机种子 (确保结果可复现) |
+| `--lr` | float | 0.001 | 初始学习率 |
+| `--seed` | int | 42 | 随机种子 |
 | `--num_workers` | int | 2 | DataLoader 的工作线程数 |
 
 # 输出结果说明
-训练完成后，程序会自动在 results/{model_type}/ 目录下生成以下文件，方便你进行实验分析和撰写报告：
+训练完成后，程序会自动在 results/{model_type}/ 目录下生成以下文件：
 
 best_model.pth: 验证集上准确率最高的模型权重文件。
 
