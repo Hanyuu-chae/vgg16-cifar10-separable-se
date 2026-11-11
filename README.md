@@ -1,6 +1,6 @@
 # vgg16-cifar10-separable-se
 
-本项目基于 **PyTorch** 实现了一个改进版的 VGG16 模型，并在 **CIFAR-10** 图像分类数据集上进行对比实验。项目的主要目的是探索**深度可分离卷积 (Depthwise Separable Convolution)** 和 **SE 注意力机制 (Squeeze-and-Excitation)** 对模型分类性能、参数量 (Parameters) 以及计算量 (FLOPs) 的影响。
+本项目基于 **PyTorch** 实现了一个改进版的 VGG16 模型，并在 **CIFAR-10** 图像分类数据集上进行对比实验。项目的主要目的是探索**深度可分离卷积** 和 **SE 注意力机制** 对模型分类性能、参数量以及计算量的影响。
 
 # 项目背景与动机
 传统 VGG16 模型虽然结构简单、特征提取能力强，但其全连接层和标准卷积层参数量巨大，计算成本极高。为了在保持模型精度的同时实现“轻量化”，本项目引入并测试了两种主流的网络优化策略：
@@ -16,7 +16,7 @@
 | `baseline` | ❌ | ❌ | 标准 VGG16 模型（基准对照组） |
 | `dw` | ✅ | ❌ | 仅使用深度可分离卷积 |
 | `se` | ❌ | ✅ | 仅加入 SE 注意力模块 |
-| `dw_se` | ✅ | ✅ | 同时使用 DW 卷积与 SE 模块（预期最优） |
+| `dw_se` | ✅ | ✅ | 同时使用 DW 卷积与 SE 模块 |
 
 # 环境要求
 
@@ -33,23 +33,24 @@
 在终端中运行 train.py 即可开始训练：
 
 ```text
-# 示例：训练同时包含 DW 卷积和 SE 注意力的模型
+# 训练同时包含 DW 卷积和 SE 注意力的模型
 python train.py --model_type dw_se --epochs 50 --batch_size 128 --lr 0.001
 
-# 示例：训练基准 Baseline 模型
+# 训练基准 Baseline 模型
 python train.py --model_type baseline --epochs 50
 ```
 
 # 完整参数说明：
-|参数名	|类型	|默认值	|说明|
-|--model_type	|str    |baseline	|选择模型结构 (baseline, dw, se, dw_se)|
-|--epochs	|int	|10	|训练的总轮数|
-|--batch_size	|int	|128	|训练和验证时的 Batch Size|
-|--lr	|float	|0.001	|初始学习率 (使用 Adam 优化器)|
-|--seed	|int	|42	|随机种子（确保结果可复现）|
-|--num_workers	|int	|2	|DataLoader 的工作线程数|
+| 参数名 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `--model_type` | str | baseline | 选择模型结构 (baseline, dw, se, dw_se) |
+| `--epochs` | int | 10 | 训练的总轮数 |
+| `--batch_size` | int | 128 | 训练和验证时的 Batch Size |
+| `--lr` | float | 0.001 | 初始学习率 (使用 Adam 优化器) |
+| `--seed` | int | 42 | 随机种子 (确保结果可复现) |
+| `--num_workers` | int | 2 | DataLoader 的工作线程数 |
 
-# 输出结果说明 (Outputs)
+# 输出结果说明
 训练完成后，程序会自动在 results/{model_type}/ 目录下生成以下文件，方便你进行实验分析和撰写报告：
 
 best_model.pth: 验证集上准确率最高的模型权重文件。
