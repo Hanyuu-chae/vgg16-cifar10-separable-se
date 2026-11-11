@@ -1,0 +1,4 @@
+torch>=1.10.0
+torchvision>=0.10.0
+tqdm>=4.60.0
+matplotlib>=3.4.0
