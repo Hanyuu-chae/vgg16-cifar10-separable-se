@@ -1,0 +1,51 @@
+import time
+import torch
+import torch.nn as nn
+from model import VGG16
+
+
+def count_parameters(model):
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return total_params, trainable_params
+
+
+def benchmark_inference(model, input_size=(1, 3, 32, 32), device='cpu', num_iterations=100):
+    model.to(device)
+    model.eval()
+    dummy_input = torch.randn(input_size).to(device)
+
+    with torch.no_grad():
+        for _ in range(10):
+            _ = model(dummy_input)
+
+    start_time = time.time()
+    with torch.no_grad():
+        for _ in range(num_iterations):
+            _ = model(dummy_input)
+            if device == 'cuda':
+                torch.cuda.synchronize()
+    end_time = time.time()
+
+    avg_latency = (end_time - start_time) / num_iterations * 1000  # 毫秒 (ms)
+    fps = 1000 / avg_latency
+    return avg_latency, fps
+
+
+if __name__ == "__main__":
+    #  "baseline", "dw", "se", "dw_se"
+    model_type = "dw_se"
+    print(f"边缘端轻量化模型配置: {model_type.upper()} ")
+
+    model = VGG16(model_type=model_type, num_classes=10)
+
+    # 统计参数量
+    total_p, train_p = count_parameters(model)
+    print(f"[模型规模] 总参数量: {total_p / 1e6:.2f} M | 可训练参数: {train_p / 1e6:.2f} M")
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[运行环境] 当前测试硬件设备: {device}")
+
+    # 测试推理性能
+    latency, fps = benchmark_inference(model, device=device)
+    print(f"[性能指标] 平均单张推理延迟: {latency:.2f} ms | 理论吞吐量: {fps:.2f} FPS")
