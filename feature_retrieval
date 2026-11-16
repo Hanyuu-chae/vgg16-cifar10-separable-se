@@ -1,0 +1,99 @@
+import os
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import transforms
+from torchvision.datasets import CIFAR10
+from PIL import Image
+from model import VGG16
+
+
+class FeatureExtractor(nn.Module):
+
+    def __init__(self, checkpoint_path, model_type="dw_se"):
+        super(FeatureExtractor, self).__init__()
+        self.model = VGG16(model_type=model_type, num_classes=10)
+
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"未找到权重文件: {checkpoint_path}")
+
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        if "model_state_dict" in checkpoint:
+            self.model.load_state_dict(checkpoint["model_state_dict"])
+        else:
+            self.model.load_state_dict(checkpoint)
+
+        self.model.eval()
+
+    def forward(self, x):
+        with torch.no_grad():
+            # 前向传播获取模型的特征输出
+            features = self.model(x)
+        # L2 归一化，将向量模长规整为 1，方便后续计算余弦相似度
+        return F.normalize(features, p=2, dim=1)
+
+
+def compute_image_similarity(img_path1, img_path2, extractor, transform):
+    """计算两张图像的特征余弦相似度"""
+    # 加载并预处理两张图片
+    img1 = transform(Image.open(img_path1).convert("RGB")).unsqueeze(0)
+    img2 = transform(Image.open(img_path2).convert("RGB")).unsqueeze(0)
+
+    # 确保张量在正确的设备上（CPU 或 GPU）
+    device = next(extractor.parameters()).device
+    img1, img2 = img1.to(device), img2.to(device)
+
+    # 提取特征
+    feat1 = extractor(img1)
+    feat2 = extractor(img2)
+
+    # 利用归一化向量的矩阵乘法计算余弦相似度
+    similarity = torch.mm(feat1, feat2.T).item()
+    return similarity
+
+
+if __name__ == "__main__":
+    transform = transforms.Compose([
+        transforms.Resize((32, 32)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    model_type = "se"
+    ckpt_path = f"results/{model_type}/best_model.pth"
+
+    print(f"正在初始化模型类型: {model_type}")
+
+    try:
+        # 1. 加载特征提取器
+        extractor = FeatureExtractor(checkpoint_path=ckpt_path, model_type=model_type)
+        print("=== 安防图像特征提取器加载成功！===")
+
+        # 2. 自动从项目本地的 data/ 目录读取 CIFAR-10 测试集提取两张样本图片用于演示
+        os.makedirs("test_imgs", exist_ok=True)
+        print("正在从本地 data/ 目录加载 CIFAR-10 测试集...")
+
+        test_dataset = CIFAR10(root="./data", train=False, download=False)
+
+        # 取第 0 张图与第 1 张图作为查询图与目标比对图
+        img_query, label_q = test_dataset[0]
+        img_target, label_t = test_dataset[1]
+
+        query_path = "test_imgs/query_sample.jpg"
+        target_path = "test_imgs/target_sample.jpg"
+
+        img_query.save(query_path)
+        img_target.save(target_path)
+
+        print(f"  - Query 样本路径: {query_path} (真实类别标签: {label_q})")
+        print(f"  - Target 样本路径: {target_path} (真实类别标签: {label_t})")
+
+        # 3. 调用函数进行相似度计算
+        sim_score = compute_image_similarity(query_path, target_path, extractor, transform)
+        print(f"-> 目标图像匹配相似度得分: {sim_score:.4f} (数值越接近 1.0 说明特征越相似)")
+
+    except FileNotFoundError as e:
+        print(f"错误: {e}")
+        print("提示：请确保对应模型已经训练完毕并在 results/ 目录下生成了 best_model.pth 文件。")
+    except Exception as e:
+        print(f"运行过程中发生错误: {e}")
